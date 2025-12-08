@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../api';
+import { normalizeMatches, normalizeMatch } from '../utils/normalize';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -60,7 +61,7 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
           method: 'POST',
           body: JSON.stringify(newMatch),
         });
-        setMatches([...matches, created]);
+        setMatches([...matches, normalizeMatch(created)]);
         setNewMatch({ away: '', date: '', time: '', competition: '' });
         setShowNewMatchDialog(false);
       } catch (err: any) {
@@ -105,7 +106,7 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
     (async () => {
       try {
         const data: any = await apiFetch('/api/matches');
-        setMatches(data);
+        setMatches(normalizeMatches(data));
       } catch (err) {
         console.error('Error loading matches', err);
       }
@@ -281,7 +282,7 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                           {match.home} vs {match.away}
                         </TableCell>
                         <TableCell>
-                          {match.date} {match.time}
+                          {match.formattedDateTime}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="border-blue-700 text-blue-700">

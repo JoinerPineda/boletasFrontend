@@ -12,6 +12,7 @@ import {
   Ticket
 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { formatDateTime } from '../utils/normalize';
 
 interface ConfirmationProps {
   onNavigate: (page: string) => void;
@@ -112,15 +113,8 @@ export function Confirmation({ onNavigate, purchaseData }: ConfirmationProps) {
                     <div className="flex items-start gap-3">
                       <Calendar className="h-5 w-5 text-blue-700 mt-0.5" />
                       <div>
-                        <p className="text-sm text-gray-500">Fecha</p>
-                        <p className="text-blue-900">{match.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Clock className="h-5 w-5 text-blue-700 mt-0.5" />
-                      <div>
-                        <p className="text-sm text-gray-500">Hora</p>
-                        <p className="text-blue-900">{match.time}</p>
+                        <p className="text-sm text-gray-500">Fecha y Hora</p>
+                        <p className="text-blue-900">{formatDateTime(match.date, match.time)}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../api';
+import { normalizeMatches } from '../utils/normalize';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -26,7 +27,7 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
     (async () => {
       try {
         const data: any = await apiFetch('/api/matches');
-        setMatchesList(data);
+        setMatchesList(normalizeMatches(data));
       } catch (err) {
         console.error('Error loading matches', err);
       }
@@ -134,10 +135,7 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
                     <div className="flex items-center gap-6">
                       <div className="flex items-center gap-2 text-gray-700">
                         <Calendar className="h-4 w-4 text-blue-700" />
-                        <span className="text-sm">{match.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="text-sm">{match.time}</span>
+                        <span className="text-sm">{match.formattedDateTime}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <MapPin className="h-4 w-4 text-green-600" />

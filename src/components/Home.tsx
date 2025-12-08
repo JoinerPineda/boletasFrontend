@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { formatDateTime } from '../utils/normalize';
 
 interface HomeProps {
   onNavigate: (page: string) => void;
@@ -122,7 +123,7 @@ export function Home({ onNavigate }: HomeProps) {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 text-gray-700">
                     <Calendar className="h-5 w-5 text-blue-700" />
-                    <span>{match.date} - {match.time}</span>
+                    <span>{formatDateTime(match.date, match.time)}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-700">
                     <MapPin className="h-5 w-5 text-green-600" />
