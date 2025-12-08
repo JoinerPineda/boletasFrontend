@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiFetch, saveToken } from '../api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -19,15 +20,33 @@ export function Auth({ onNavigate }: AuthProps) {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
 
-  const handleLogin = (userType: string) => {
-    if (loginEmail && loginPassword) {
-      onNavigate(userType === 'admin' ? 'admin' : 'user', userType);
+  const handleLogin = async (userTypeHint?: string) => {
+    if (!loginEmail || !loginPassword) return alert('Ingrese correo y contraseña');
+    try {
+      const data: any = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      saveToken(data.accessToken);
+      const role = data.user?.role || userTypeHint || 'user';
+      onNavigate(role === 'admin' ? 'admin' : 'user', role);
+    } catch (err: any) {
+      alert(err?.body?.error || 'Error al iniciar sesión');
     }
   };
 
-  const handleRegister = () => {
-    if (registerName && registerEmail && registerPassword && registerPassword === registerConfirmPassword) {
+  const handleRegister = async () => {
+    if (!registerName || !registerEmail || !registerPassword) return alert('Complete los campos');
+    if (registerPassword !== registerConfirmPassword) return alert('Las contraseñas no coinciden');
+    try {
+      const data: any = await apiFetch('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name: registerName, email: registerEmail, password: registerPassword }),
+      });
+      saveToken(data.accessToken);
       onNavigate('user', 'user');
+    } catch (err: any) {
+      alert(err?.body?.error || 'Error al registrar');
     }
   };
 
@@ -145,20 +164,13 @@ export function Auth({ onNavigate }: AuthProps) {
                       />
                     </div>
 
-                    <div className="pt-4 space-y-3">
+                    <div className="pt-4">
                       <Button
                         className="w-full bg-blue-700 hover:bg-blue-800"
-                        onClick={() => handleLogin('user')}
+                        onClick={() => handleLogin()}
                       >
                         <UserCircle2 className="mr-2 h-4 w-4" />
-                        Ingresar como Usuario
-                      </Button>
-                      <Button
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        onClick={() => handleLogin('admin')}
-                      >
-                        <ShieldCheck className="mr-2 h-4 w-4" />
-                        Ingresar como Administrador
+                        Ingresar
                       </Button>
                     </div>
                   </TabsContent>

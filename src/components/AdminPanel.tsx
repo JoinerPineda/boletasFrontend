@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiFetch } from '../api';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -38,41 +39,7 @@ interface AdminPanelProps {
 }
 
 export function AdminPanel({ onNavigate }: AdminPanelProps) {
-  const [matches, setMatches] = useState([
-    {
-      id: 1,
-      home: 'Once Caldas',
-      away: 'Atlético Nacional',
-      date: '2025-11-05',
-      time: '20:00',
-      competition: 'Liga BetPlay',
-      ticketsSold: 4580,
-      revenue: 197550000,
-      status: 'active',
-    },
-    {
-      id: 2,
-      home: 'Once Caldas',
-      away: 'Millonarios FC',
-      date: '2025-11-12',
-      time: '18:30',
-      competition: 'Liga BetPlay',
-      ticketsSold: 1500,
-      revenue: 64500000,
-      status: 'active',
-    },
-    {
-      id: 3,
-      home: 'Once Caldas',
-      away: 'América de Cali',
-      date: '2025-11-19',
-      time: '16:00',
-      competition: 'Copa Colombia',
-      ticketsSold: 7200,
-      revenue: 295200000,
-      status: 'active',
-    },
-  ]);
+  const [matches, setMatches] = useState<any[]>([]);
 
   const [simulationResults, setSimulationResults] = useState<any[]>([]);
 
@@ -86,26 +53,31 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
   const [showNewMatchDialog, setShowNewMatchDialog] = useState(false);
 
   const handleCreateMatch = () => {
-    if (newMatch.away && newMatch.date && newMatch.time && newMatch.competition) {
-      const match = {
-        id: matches.length + 1,
-        home: 'Once Caldas',
-        away: newMatch.away,
-        date: newMatch.date,
-        time: newMatch.time,
-        competition: newMatch.competition,
-        ticketsSold: 0,
-        revenue: 0,
-        status: 'active',
-      };
-      setMatches([...matches, match]);
-      setNewMatch({ away: '', date: '', time: '', competition: '' });
-      setShowNewMatchDialog(false);
-    }
+    if (!newMatch.away || !newMatch.date || !newMatch.time || !newMatch.competition) return;
+    (async () => {
+      try {
+        const created: any = await apiFetch('/api/matches', {
+          method: 'POST',
+          body: JSON.stringify(newMatch),
+        });
+        setMatches([...matches, created]);
+        setNewMatch({ away: '', date: '', time: '', competition: '' });
+        setShowNewMatchDialog(false);
+      } catch (err: any) {
+        alert(err?.body?.error || 'Error creando partido');
+      }
+    })();
   };
 
   const handleDeleteMatch = (id: number) => {
-    setMatches(matches.filter(m => m.id !== id));
+    (async () => {
+      try {
+        await apiFetch(`/api/matches/${id}`, { method: 'DELETE' });
+        setMatches(matches.filter(m => m.id !== id));
+      } catch (err: any) {
+        alert(err?.body?.error || 'Error eliminando partido');
+      }
+    })();
   };
 
   const handleSimulateMatch = (matchId: number) => {
@@ -128,6 +100,17 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
       ]);
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data: any = await apiFetch('/api/matches');
+        setMatches(data);
+      } catch (err) {
+        console.error('Error loading matches', err);
+      }
+    })();
+  }, []);
 
   const totalRevenue = matches.reduce((sum, m) => sum + m.revenue, 0);
   const totalTickets = matches.reduce((sum, m) => sum + m.ticketsSold, 0);

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiFetch } from '../api';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -9,54 +10,57 @@ interface UserPanelProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
-const matches = [
-  {
-    id: 1,
-    home: 'Once Caldas',
-    away: 'Atlético Nacional',
-    date: '2025-11-05',
-    time: '20:00',
-    competition: 'Liga BetPlay',
-  },
-  {
-    id: 2,
-    home: 'Once Caldas',
-    away: 'Millonarios FC',
-    date: '2025-11-12',
-    time: '18:30',
-    competition: 'Liga BetPlay',
-  },
-  {
-    id: 3,
-    home: 'Once Caldas',
-    away: 'América de Cali',
-    date: '2025-11-19',
-    time: '16:00',
-    competition: 'Copa Colombia',
-  },
-];
+// initial placeholders while backend loads
+const initialMatches: any[] = [];
 
-const stadiumSections = [
-  { id: 1, name: 'Occidental', capacity: 6000, available: 4200, price: 45000, color: 'bg-blue-600' },
-  { id: 2, name: 'Oriental', capacity: 6000, available: 3800, price: 45000, color: 'bg-blue-500' },
-  { id: 3, name: 'Norte', capacity: 4000, available: 2100, price: 35000, color: 'bg-green-600' },
-  { id: 4, name: 'Sur', capacity: 4000, available: 1900, price: 35000, color: 'bg-green-500' },
-];
+const initialSections: any[] = [];
 
 export function UserPanel({ onNavigate }: UserPanelProps) {
+  const [matchesList, setMatchesList] = useState<any[]>(initialMatches);
+  const [stadiumSections, setStadiumSections] = useState<any[]>(initialSections);
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
   const [showStadiumMap, setShowStadiumMap] = useState(false);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
 
-  const handleBuyTicket = () => {
-    if (selectedMatch && selectedSection) {
-      const match = matches.find(m => m.id === selectedMatch);
-      const section = stadiumSections.find(s => s.id === selectedSection);
-      
+  useEffect(() => {
+    (async () => {
+      try {
+        const data: any = await apiFetch('/api/matches');
+        setMatchesList(data);
+      } catch (err) {
+        console.error('Error loading matches', err);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedMatch) return;
+    (async () => {
+      try {
+        const data: any = await apiFetch(`/api/matches/${selectedMatch}/sections`);
+        setStadiumSections(data);
+      } catch (err) {
+        console.error('Error loading sections', err);
+      }
+    })();
+  }, [selectedMatch]);
+
+  const handleBuyTicket = async () => {
+    if (!selectedMatch || !selectedSection) return;
+    try {
+      const res: any = await apiFetch('/api/purchases', {
+        method: 'POST',
+        body: JSON.stringify({ matchId: selectedMatch, sectionId: selectedSection, quantity: 1 }),
+      });
+      const match = matchesList.find(m => m.id === selectedMatch);
+      const section = stadiumSections.find((s: any) => s.id === selectedSection) || { id: selectedSection };
       onNavigate('confirmation', {
         match,
         section,
+        purchase: res,
       });
+    } catch (err: any) {
+      alert(err?.body?.error || 'Error al comprar boleta');
     }
   };
 
@@ -97,7 +101,7 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
             </div>
 
             <div className="space-y-4">
-              {matches.map((match) => (
+                      {matchesList.map((match) => (
                 <Card 
                   key={match.id}
                   className={`cursor-pointer transition-all ${
@@ -119,7 +123,7 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
                           {match.home} vs {match.away}
                         </CardTitle>
                       </div>
-                      {selectedMatch === match.id && (
+                          {selectedMatch === match.id && (
                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
                           <span className="text-green-600">✓</span>
                         </div>

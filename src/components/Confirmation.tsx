@@ -18,6 +18,7 @@ interface ConfirmationProps {
   purchaseData?: {
     match: any;
     section: any;
+    purchase?: any;
   };
 }
 
@@ -26,8 +27,8 @@ export function Confirmation({ onNavigate, purchaseData }: ConfirmationProps) {
     return null;
   }
 
-  const { match, section } = purchaseData;
-  const ticketCode = `OC-${match.id}${section.id}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  const { match, section, purchase } = purchaseData;
+  const ticketCode = purchase?.tickets?.[0]?.code || `OC-${match.id}${section.id}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
   const purchaseDate = new Date().toLocaleString('es-CO', {
     year: 'numeric',
     month: 'long',
@@ -207,6 +208,26 @@ export function Confirmation({ onNavigate, purchaseData }: ConfirmationProps) {
                 <div className="mt-6 w-full space-y-3">
                   <Button 
                     className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={async () => {
+                      try {
+                        if (!purchase) return alert('No hay información de compra');
+                        const res = await fetch(`http://localhost:4000${purchase.downloadUrl}`, {
+                          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+                        });
+                        if (!res.ok) return alert('Error al descargar');
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${purchase.purchaseId}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                      } catch (err) {
+                        alert('Error descargando PDF');
+                      }
+                    }}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Descargar Boleta (PDF)
