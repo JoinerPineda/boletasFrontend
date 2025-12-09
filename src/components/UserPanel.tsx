@@ -102,7 +102,7 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
             </div>
 
             <div className="space-y-4">
-                      {matchesList.map((match) => (
+              {matchesList.map((match) => (
                 <Card 
                   key={match.id}
                   className={`cursor-pointer transition-all ${
@@ -124,14 +124,14 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
                           {match.home} vs {match.away}
                         </CardTitle>
                       </div>
-                          {selectedMatch === match.id && (
+                      {selectedMatch === match.id && (
                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
                           <span className="text-green-600">✓</span>
                         </div>
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-4">
+                  <CardContent className="pt-4 space-y-3">
                     <div className="flex items-center gap-6">
                       <div className="flex items-center gap-2 text-gray-700">
                         <Calendar className="h-4 w-4 text-blue-700" />
@@ -140,6 +140,24 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
                       <div className="flex items-center gap-2 text-gray-700">
                         <MapPin className="h-4 w-4 text-green-600" />
                         <span className="text-sm">Palogrande</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Users className="h-4 w-4 text-blue-700" />
+                      <span className="text-sm">{(match.capacity - match.ticketsSold).toLocaleString()} boletas disponibles</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Disponibilidad</span>
+                        <span className="text-blue-700 font-semibold">
+                          {Math.round(((match.capacity - match.ticketsSold) / match.capacity) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-600 to-green-600 h-2 rounded-full transition-all"
+                          style={{ width: `${((match.capacity - match.ticketsSold) / match.capacity) * 100}%` }}
+                        />
                       </div>
                     </div>
                   </CardContent>
