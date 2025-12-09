@@ -175,7 +175,7 @@ export function Home({ onNavigate }: HomeProps) {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                 <Users className="h-8 w-8 text-blue-700" />
               </div>
-              <h3 className="text-2xl text-blue-900">20,000</h3>
+              <h3 className="text-2xl text-blue-900">28,000</h3>
               <p className="text-gray-600">Capacidad Total</p>
             </div>
             <div className="space-y-2">
