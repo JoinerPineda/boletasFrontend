@@ -336,9 +336,15 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                           }).format(match.revenue)}
                         </TableCell>
                         <TableCell>
-                          <Badge className={match.status === 'active' ? 'bg-green-600' : 'bg-red-600'}>
-                            {match.status === 'active' ? 'Activo' : 'Inactivo'}
-                          </Badge>
+                          {match.status === 'active' ? (
+                            <Badge className="bg-green-600 text-white border-0">
+                              Activo
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="border-0">
+                              Inactivo
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -552,15 +558,15 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                 <Label>Estado</Label>
                 <div className="flex gap-2">
                   <Button
+                    className={`flex-1 ${editingMatch.status === 'active' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-2 border-green-600 text-green-600 hover:bg-green-50'}`}
                     variant={editingMatch.status === 'active' ? 'default' : 'outline'}
-                    className={editingMatch.status === 'active' ? 'bg-green-600' : ''}
                     onClick={() => setEditingMatch({ ...editingMatch, status: 'active' })}
                   >
                     Activo
                   </Button>
                   <Button
+                    className={`flex-1 ${editingMatch.status === 'inactive' ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-2 border-red-600 text-red-600 hover:bg-red-50'}`}
                     variant={editingMatch.status === 'inactive' ? 'default' : 'outline'}
-                    className={editingMatch.status === 'inactive' ? 'bg-red-600' : ''}
                     onClick={() => setEditingMatch({ ...editingMatch, status: 'inactive' })}
                   >
                     Inactivo
