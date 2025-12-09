@@ -283,11 +283,19 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                         </div>
                         <div className="space-y-2">
                           <Label>Competición</Label>
-                          <Input
-                            placeholder="Ej: Liga BetPlay"
+                          <select
                             value={newMatch.competition}
                             onChange={(e) => setNewMatch({ ...newMatch, competition: e.target.value })}
-                          />
+                            className="w-full px-3 py-2 border rounded-md text-sm"
+                          >
+                            <option value="">Selecciona una competición</option>
+                            <option value="Liga BetPlay">Liga BetPlay</option>
+                            <option value="Copa BetPlay">Copa BetPlay</option>
+                            <option value="Superliga BetPlay">Superliga BetPlay</option>
+                            <option value="Copa Libertadores">Copa Libertadores</option>
+                            <option value="Copa Sudamericana">Copa Sudamericana</option>
+                            <option value="Recopa Sudamericana">Recopa Sudamericana</option>
+                          </select>
                         </div>
                         <Button 
                           className="w-full bg-green-600 hover:bg-green-700"
@@ -549,10 +557,19 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
               </div>
               <div className="space-y-2">
                 <Label>Competición</Label>
-                <Input
+                <select
                   value={editingMatch.competition}
                   onChange={(e) => setEditingMatch({ ...editingMatch, competition: e.target.value })}
-                />
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">Selecciona una competición</option>
+                  <option value="Liga BetPlay">Liga BetPlay</option>
+                  <option value="Copa BetPlay">Copa BetPlay</option>
+                  <option value="Superliga BetPlay">Superliga BetPlay</option>
+                  <option value="Copa Libertadores">Copa Libertadores</option>
+                  <option value="Copa Sudamericana">Copa Sudamericana</option>
+                  <option value="Recopa Sudamericana">Recopa Sudamericana</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <Label>Estado</Label>
