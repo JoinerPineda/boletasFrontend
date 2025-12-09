@@ -27,7 +27,9 @@ export function UserPanel({ onNavigate }: UserPanelProps) {
     (async () => {
       try {
         const data: any = await apiFetch('/api/matches');
-        setMatchesList(normalizeMatches(data));
+        // Filter only active matches
+        const activeMatches = normalizeMatches(data).filter(m => m.status === 'active');
+        setMatchesList(activeMatches);
       } catch (err) {
         console.error('Error loading matches', err);
       }

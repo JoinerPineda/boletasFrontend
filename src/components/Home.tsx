@@ -21,8 +21,9 @@ export function Home({ onNavigate }: HomeProps) {
       try {
         const data: any = await apiFetch('/api/matches');
         const normalized = normalizeMatches(data);
-        // Sort by date and get only the next 3 matches
+        // Filter only active matches, sort by date and get only the next 3 matches
         const sorted = normalized
+          .filter(m => m.status === 'active')
           .sort((a, b) => {
             const dateA = new Date(`${a.date}T${a.time}`);
             const dateB = new Date(`${b.date}T${b.time}`);

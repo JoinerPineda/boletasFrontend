@@ -328,7 +328,13 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                           </Badge>
                         </TableCell>
                         <TableCell>{match.ticketsSold.toLocaleString()}</TableCell>
-                        <TableCell>${(match.revenue / 100000).toFixed(0)}k</TableCell>
+                        <TableCell>
+                          {new Intl.NumberFormat('es-CO', {
+                            style: 'currency',
+                            currency: 'COP',
+                            maximumFractionDigits: 0,
+                          }).format(match.revenue)}
+                        </TableCell>
                         <TableCell>
                           <Badge className={match.status === 'active' ? 'bg-green-600' : 'bg-red-600'}>
                             {match.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -407,9 +413,19 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                             </div>
                           </TableCell>
                           <TableCell className="text-green-700">
-                            ${(match.revenue / 1000000).toFixed(2)}M
+                            {new Intl.NumberFormat('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              maximumFractionDigits: 0,
+                            }).format(match.revenue)}
                           </TableCell>
-                          <TableCell>${avgPrice.toLocaleString()}</TableCell>
+                          <TableCell>
+                            {new Intl.NumberFormat('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              maximumFractionDigits: 0,
+                            }).format(avgPrice * 100)}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
