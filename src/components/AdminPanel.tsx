@@ -41,17 +41,17 @@ interface AdminPanelProps {
 
 export function AdminPanel({ onNavigate }: AdminPanelProps) {
   const [matches, setMatches] = useState<any[]>([]);
-
   const [simulationResults, setSimulationResults] = useState<any[]>([]);
-
+  const [showNewMatchDialog, setShowNewMatchDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<any>(null);
+  
   const [newMatch, setNewMatch] = useState({
     away: '',
     date: '',
     time: '',
     competition: '',
   });
-
-  const [showNewMatchDialog, setShowNewMatchDialog] = useState(false);
 
   const handleCreateMatch = () => {
     if (!newMatch.away || !newMatch.date || !newMatch.time || !newMatch.competition) return;
@@ -70,7 +70,40 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
     })();
   };
 
+  const handleEditMatch = (match: any) => {
+    setEditingMatch({ ...match });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMatch.away || !editingMatch.date || !editingMatch.time || !editingMatch.competition) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    (async () => {
+      try {
+        const updated: any = await apiFetch(`/api/matches/${editingMatch.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            away: editingMatch.away,
+            date: editingMatch.date,
+            time: editingMatch.time,
+            competition: editingMatch.competition,
+            status: editingMatch.status,
+          }),
+        });
+        setMatches(matches.map(m => m.id === editingMatch.id ? normalizeMatch(updated) : m));
+        setEditingMatch(null);
+        setShowEditDialog(false);
+      } catch (err: any) {
+        alert(err?.body?.error || 'Error editando partido');
+      }
+    })();
+  };
+
   const handleDeleteMatch = (id: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este partido?')) return;
     (async () => {
       try {
         await apiFetch(`/api/matches/${id}`, { method: 'DELETE' });
@@ -114,7 +147,6 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
   }, []);
 
   const totalRevenue = matches.reduce((sum, m) => sum + parseInt(m.revenue), 0);
-  console.log(totalRevenue);
   const totalTickets = matches.reduce((sum, m) => sum + m.ticketsSold, 0);
   const averageAttendance = matches.length > 0 ? Math.round(totalTickets / matches.length) : 0;
   const formattedTotalRevenue = new Intl.NumberFormat('es-CO', {
@@ -296,15 +328,20 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                           </Badge>
                         </TableCell>
                         <TableCell>{match.ticketsSold.toLocaleString()}</TableCell>
-                        <TableCell>{match.revenue}</TableCell>
+                        <TableCell>${(match.revenue / 100000).toFixed(0)}k</TableCell>
                         <TableCell>
-                          <Badge className="bg-green-600">
-                            {match.status === 'active' ? 'Activo' : 'Cancelado'}
+                          <Badge className={match.status === 'active' ? 'bg-green-600' : 'bg-red-600'}>
+                            {match.status === 'active' ? 'Activo' : 'Inactivo'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" className="text-blue-700">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-blue-700"
+                              onClick={() => handleEditMatch(match)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button 
@@ -346,9 +383,9 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                   </TableHeader>
                   <TableBody>
                     {matches.map((match) => {
-                      const occupancy = ((match.ticketsSold / 20000) * 100).toFixed(1);
+                      const occupancy = ((match.ticketsSold / 28000) * 100).toFixed(1);
                       const avgPrice = match.ticketsSold > 0 
-                        ? Math.round(match.revenue / match.ticketsSold)
+                        ? Math.round(match.revenue / match.ticketsSold / 100)
                         : 0;
                       
                       return (
@@ -453,6 +490,89 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Match Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Partido</DialogTitle>
+            <DialogDescription>
+              Modifica los datos del partido o cambia su estado
+            </DialogDescription>
+          </DialogHeader>
+          {editingMatch && (
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Equipo Visitante</Label>
+                <Input
+                  value={editingMatch.away}
+                  onChange={(e) => setEditingMatch({ ...editingMatch, away: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Fecha</Label>
+                <Input
+                  type="date"
+                  value={editingMatch.date}
+                  onChange={(e) => setEditingMatch({ ...editingMatch, date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hora</Label>
+                <Input
+                  type="time"
+                  value={editingMatch.time}
+                  onChange={(e) => setEditingMatch({ ...editingMatch, time: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Competición</Label>
+                <Input
+                  value={editingMatch.competition}
+                  onChange={(e) => setEditingMatch({ ...editingMatch, competition: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={editingMatch.status === 'active' ? 'default' : 'outline'}
+                    className={editingMatch.status === 'active' ? 'bg-green-600' : ''}
+                    onClick={() => setEditingMatch({ ...editingMatch, status: 'active' })}
+                  >
+                    Activo
+                  </Button>
+                  <Button
+                    variant={editingMatch.status === 'inactive' ? 'default' : 'outline'}
+                    className={editingMatch.status === 'inactive' ? 'bg-red-600' : ''}
+                    onClick={() => setEditingMatch({ ...editingMatch, status: 'inactive' })}
+                  >
+                    Inactivo
+                  </Button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={handleSaveEdit}
+                >
+                  Guardar Cambios
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditingMatch(null);
+                    setShowEditDialog(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
