@@ -41,6 +41,13 @@ interface AdminPanelProps {
 
 export function AdminPanel({ onNavigate }: AdminPanelProps) {
   const [matches, setMatches] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [selectedNewTeam, setSelectedNewTeam] = useState<any | null>(null);
+  const [selectedEditingTeam, setSelectedEditingTeam] = useState<any | null>(null);
+  const [newMatchSelection, setNewMatchSelection] = useState<string>('');
+  const [newMatchOther, setNewMatchOther] = useState<string>('');
+  const [editingMatchSelection, setEditingMatchSelection] = useState<string>('');
+  const [editingMatchOther, setEditingMatchOther] = useState<string>('');
   const [simulationResults, setSimulationResults] = useState<any[]>([]);
   const [showNewMatchDialog, setShowNewMatchDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -54,15 +61,21 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
   });
 
   const handleCreateMatch = () => {
-    if (!newMatch.away || !newMatch.date || !newMatch.time || !newMatch.competition) return;
+    const awayValue = newMatchSelection === '__other' ? newMatchOther : newMatchSelection || newMatch.away;
+    if (!awayValue || !newMatch.date || !newMatch.time || !newMatch.competition) return;
+
     (async () => {
       try {
+        const payload = { ...newMatch, away: awayValue };
         const created: any = await apiFetch('/api/matches', {
           method: 'POST',
-          body: JSON.stringify(newMatch),
+          body: JSON.stringify(payload),
         });
         setMatches([...matches, normalizeMatch(created)]);
         setNewMatch({ away: '', date: '', time: '', competition: '' });
+        setNewMatchSelection('');
+        setNewMatchOther('');
+        setSelectedNewTeam(null);
         setShowNewMatchDialog(false);
       } catch (err: any) {
         alert(err?.body?.error || 'Error creando partido');
@@ -72,29 +85,44 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
 
   const handleEditMatch = (match: any) => {
     setEditingMatch({ ...match });
+    // set selected editing team if teams already loaded
+    const found = teams.find(t => t.name === match.away) || null;
+    setSelectedEditingTeam(found);
+    if (found) {
+      setEditingMatchSelection(found.name);
+      setEditingMatchOther('');
+    } else {
+      setEditingMatchSelection('__other');
+      setEditingMatchOther(match.away || '');
+    }
     setShowEditDialog(true);
   };
 
   const handleSaveEdit = () => {
-    if (!editingMatch.away || !editingMatch.date || !editingMatch.time || !editingMatch.competition) {
+    const awayValue = editingMatchSelection === '__other' ? editingMatchOther : editingMatchSelection || editingMatch.away;
+    if (!awayValue || !editingMatch.date || !editingMatch.time || !editingMatch.competition) {
       alert('Por favor completa todos los campos');
       return;
     }
 
     (async () => {
       try {
+        const payload = { 
+          away: awayValue,
+          date: editingMatch.date,
+          time: editingMatch.time,
+          competition: editingMatch.competition,
+          status: editingMatch.status,
+        };
         const updated: any = await apiFetch(`/api/matches/${editingMatch.id}`, {
           method: 'PATCH',
-          body: JSON.stringify({
-            away: editingMatch.away,
-            date: editingMatch.date,
-            time: editingMatch.time,
-            competition: editingMatch.competition,
-            status: editingMatch.status,
-          }),
+          body: JSON.stringify(payload),
         });
         setMatches(matches.map(m => m.id === editingMatch.id ? normalizeMatch(updated) : m));
         setEditingMatch(null);
+        setEditingMatchSelection('');
+        setEditingMatchOther('');
+        setSelectedEditingTeam(null);
         setShowEditDialog(false);
       } catch (err: any) {
         alert(err?.body?.error || 'Error editando partido');
@@ -142,6 +170,52 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
         setMatches(normalizeMatches(data));
       } catch (err) {
         console.error('Error loading matches', err);
+      }
+    })();
+  }, []);
+
+  // If teams load after opening edit dialog, try to reconcile the selection
+  useEffect(() => {
+    if (!editingMatch) return;
+    const found = teams.find(t => t.name === editingMatch.away) || null;
+    if (found) {
+      setSelectedEditingTeam(found);
+      setEditingMatchSelection(found.name);
+      setEditingMatchOther('');
+    }
+  }, [teams]);
+
+  // Load Colombian teams from TheSportsDB for the visitor select
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?s=Soccer&c=Colombia');
+        const json = await res.json();
+        if (json && json.teams) {
+          // Filter out female teams and national/select teams (e.g., Colombia U20, Colombia Women)
+          const filtered = json.teams.filter((t: any) => {
+            const name = (t.strTeam || '').toLowerCase();
+            const gender = (t.strGender || '').toLowerCase();
+            if (gender === 'female') return false;
+            // exclude selections/national teams and youth teams
+            if (name.includes('colombia')) return false;
+            if (name.includes('selecci') || name.includes('selection')) return false;
+            if (name.includes('women') || name.includes('femen')) return false;
+            // exclude youth teams like u17, u20, u23
+            if (/\bu\d{1,2}\b/.test(name)) return false;
+            return true;
+          });
+
+          const mapped = filtered.map((t: any) => ({
+            name: t.strTeam,
+            badge: t.strTeamBadge,
+            stadium: t.strStadium,
+            formed: t.intFormedYear,
+          }));
+          setTeams(mapped);
+        }
+      } catch (err) {
+        console.error('Error fetching teams from TheSportsDB', err);
       }
     })();
   }, []);
@@ -259,11 +333,50 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2">
                           <Label>Equipo Visitante</Label>
-                          <Input
-                            placeholder="Ej: Atlético Nacional"
-                            value={newMatch.away}
-                            onChange={(e) => setNewMatch({ ...newMatch, away: e.target.value })}
-                          />
+                          <div className="flex items-center gap-3">
+                            <select
+                              value={newMatchSelection}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setNewMatchSelection(val);
+                                if (val === '__other') {
+                                  setSelectedNewTeam(null);
+                                  setNewMatchOther('');
+                                  setNewMatch({ ...newMatch, away: '' });
+                                } else {
+                                  const found = teams.find(t => t.name === val) || null;
+                                  setSelectedNewTeam(found);
+                                  setNewMatch({ ...newMatch, away: val });
+                                  setNewMatchOther('');
+                                }
+                              }}
+                              className="w-full px-3 py-2 border rounded-md text-sm"
+                            >
+                              <option value="">Selecciona un equipo visitante</option>
+                              {teams.map((t) => (
+                                <option key={t.name} value={t.name}>{t.name}</option>
+                              ))}
+                              <option value="__other">Otro</option>
+                            </select>
+                            {selectedNewTeam && (
+                              <img src={selectedNewTeam.badge} alt={selectedNewTeam.name} className="w-10 h-10 object-contain" />
+                            )}
+                          </div>
+                          {selectedNewTeam && (
+                            <p className="text-xs text-gray-500 mt-2">{selectedNewTeam.stadium} • Fundado: {selectedNewTeam.formed || '—'}</p>
+                          )}
+                          {newMatchSelection === '__other' && (
+                            <div className="mt-2">
+                              <Input
+                                placeholder="Nombre del equipo visitante"
+                                value={newMatchOther}
+                                onChange={(e) => {
+                                  setNewMatchOther(e.target.value);
+                                  setNewMatch({ ...newMatch, away: e.target.value });
+                                }}
+                              />
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label>Fecha</Label>
@@ -534,10 +647,50 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Equipo Visitante</Label>
-                <Input
-                  value={editingMatch.away}
-                  onChange={(e) => setEditingMatch({ ...editingMatch, away: e.target.value })}
-                />
+                <div className="flex items-center gap-3">
+                  <select
+                    value={editingMatchSelection}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingMatchSelection(val);
+                      if (val === '__other') {
+                        setSelectedEditingTeam(null);
+                        setEditingMatchOther(editingMatch.away || '');
+                        setEditingMatch({ ...editingMatch, away: '' });
+                      } else {
+                        const found = teams.find(t => t.name === val) || null;
+                        setSelectedEditingTeam(found);
+                        setEditingMatch({ ...editingMatch, away: val });
+                        setEditingMatchOther('');
+                      }
+                    }}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="">Selecciona un equipo visitante</option>
+                    {teams.map((t) => (
+                      <option key={t.name} value={t.name}>{t.name}</option>
+                    ))}
+                    <option value="__other">Otro</option>
+                  </select>
+                  {selectedEditingTeam && (
+                    <img src={selectedEditingTeam.badge} alt={selectedEditingTeam.name} className="w-10 h-10 object-contain" />
+                  )}
+                </div>
+                {selectedEditingTeam && (
+                  <p className="text-xs text-gray-500 mt-2">{selectedEditingTeam.stadium} • Fundado: {selectedEditingTeam.formed || '—'}</p>
+                )}
+                {editingMatchSelection === '__other' && (
+                  <div className="mt-2">
+                    <Input
+                      placeholder="Nombre del equipo visitante"
+                      value={editingMatchOther}
+                      onChange={(e) => {
+                        setEditingMatchOther(e.target.value);
+                        setEditingMatch({ ...editingMatch, away: e.target.value });
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Fecha</Label>
