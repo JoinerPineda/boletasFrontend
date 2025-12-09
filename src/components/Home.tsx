@@ -1,48 +1,42 @@
 import { Calendar, MapPin, Users, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { formatDateTime } from '../utils/normalize';
+import { apiFetch } from '../api';
+import { normalizeMatches } from '../utils/normalize';
 
 interface HomeProps {
   onNavigate: (page: string) => void;
 }
 
-const upcomingMatches = [
-  {
-    id: 1,
-    home: 'Once Caldas',
-    away: 'Atlético Nacional',
-    date: '2025-11-05',
-    time: '20:00',
-    competition: 'Liga BetPlay',
-    available: 15420,
-    total: 20000,
-  },
-  {
-    id: 2,
-    home: 'Once Caldas',
-    away: 'Millonarios FC',
-    date: '2025-11-12',
-    time: '18:30',
-    competition: 'Liga BetPlay',
-    available: 18500,
-    total: 20000,
-  },
-  {
-    id: 3,
-    home: 'Once Caldas',
-    away: 'América de Cali',
-    date: '2025-11-19',
-    time: '16:00',
-    competition: 'Copa Colombia',
-    available: 12800,
-    total: 20000,
-  },
-];
-
 export function Home({ onNavigate }: HomeProps) {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data: any = await apiFetch('/api/matches');
+        const normalized = normalizeMatches(data);
+        // Sort by date and get only the next 3 matches
+        const sorted = normalized
+          .sort((a, b) => {
+            const dateA = new Date(`${a.date}T${a.time}`);
+            const dateB = new Date(`${b.date}T${b.time}`);
+            return dateA.getTime() - dateB.getTime();
+          })
+          .slice(0, 3);
+        setMatches(sorted);
+      } catch (err) {
+        console.error('Error loading matches', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
@@ -110,57 +104,67 @@ export function Home({ onNavigate }: HomeProps) {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcomingMatches.map((match) => (
-            <Card key={match.id} className="hover:shadow-xl transition-shadow border-2 border-gray-200 hover:border-blue-700">
-              <CardHeader className="bg-gradient-to-r from-blue-700 to-green-600 text-white">
-                <Badge className="w-fit mb-2 bg-white text-blue-700">{match.competition}</Badge>
-                <CardTitle className="text-white">
-                  {match.home} vs {match.away}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Calendar className="h-5 w-5 text-blue-700" />
-                    <span>{formatDateTime(match.date, match.time)}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <MapPin className="h-5 w-5 text-green-600" />
-                    <span>Estadio Palogrande, Manizales</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Users className="h-5 w-5 text-blue-700" />
-                    <span>{match.available.toLocaleString()} boletas disponibles</span>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Disponibilidad</span>
-                      <span className="text-blue-700">
-                        {Math.round((match.available / match.total) * 100)}%
-                      </span>
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Cargando partidos...</p>
+          </div>
+        ) : matches.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No hay partidos disponibles en este momento</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {matches.map((match) => (
+              <Card key={match.id} className="hover:shadow-xl transition-shadow border-2 border-gray-200 hover:border-blue-700">
+                <CardHeader className="bg-gradient-to-r from-blue-700 to-green-600 text-white">
+                  <Badge className="w-fit mb-2 bg-white text-blue-700">{match.competition}</Badge>
+                  <CardTitle className="text-white">
+                    {match.home} vs {match.away}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Calendar className="h-5 w-5 text-blue-700" />
+                      <span>{formatDateTime(match.date, match.time)}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-blue-600 to-green-600 h-2 rounded-full"
-                        style={{ width: `${(match.available / match.total) * 100}%` }}
-                      />
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <MapPin className="h-5 w-5 text-green-600" />
+                      <span>Estadio Palogrande, Manizales</span>
                     </div>
-                  </div>
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Users className="h-5 w-5 text-blue-700" />
+                      <span>{(match.capacity - match.ticketsSold).toLocaleString()} boletas disponibles</span>
+                    </div>
+                    
+                    <div className="pt-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Disponibilidad</span>
+                        <span className="text-blue-700">
+                          {Math.round(((match.capacity - match.ticketsSold) / match.capacity) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-blue-600 to-green-600 h-2 rounded-full"
+                          style={{ width: `${((match.capacity - match.ticketsSold) / match.capacity) * 100}%` }}
+                        />
+                      </div>
+                    </div>
 
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700 mt-4"
-                    onClick={() => onNavigate('auth')}
-                  >
-                    Comprar Boletas
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700 mt-4"
+                      onClick={() => onNavigate('auth')}
+                    >
+                      Comprar Boletas
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Info del Estadio */}

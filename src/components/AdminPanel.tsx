@@ -113,9 +113,15 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
     })();
   }, []);
 
-  const totalRevenue = matches.reduce((sum, m) => sum + m.revenue, 0);
+  const totalRevenue = matches.reduce((sum, m) => sum + parseInt(m.revenue), 0);
+  console.log(totalRevenue);
   const totalTickets = matches.reduce((sum, m) => sum + m.ticketsSold, 0);
   const averageAttendance = matches.length > 0 ? Math.round(totalTickets / matches.length) : 0;
+  const formattedTotalRevenue = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(totalRevenue);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -154,7 +160,7 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl text-blue-900">
-                ${(totalRevenue / 1000000).toFixed(1)}M
+                {formattedTotalRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1">Temporada 2025</p>
             </CardContent>
@@ -290,7 +296,7 @@ export function AdminPanel({ onNavigate }: AdminPanelProps) {
                           </Badge>
                         </TableCell>
                         <TableCell>{match.ticketsSold.toLocaleString()}</TableCell>
-                        <TableCell>${(match.revenue / 1000000).toFixed(1)}M</TableCell>
+                        <TableCell>{match.revenue}</TableCell>
                         <TableCell>
                           <Badge className="bg-green-600">
                             {match.status === 'active' ? 'Activo' : 'Cancelado'}
